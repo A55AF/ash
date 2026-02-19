@@ -11,12 +11,7 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
 }
 
 fn change_directory(cli: &ParsedCommand, shell: &mut ShellState) {
-    let target = cli
-        .options
-        .get("ARGUMENTS")
-        .and_then(|args| args.get(0))
-        .map(|s| s.as_str())
-        .unwrap_or(&shell.home);
+    let target = if cli.arguments.is_empty() {&shell.home.as_str()} else {cli.arguments[0].as_str()};
 
     if let Err(e) = env::set_current_dir(target) {
         eprintln!("cd error: {}", e);
@@ -29,9 +24,11 @@ fn change_directory(cli: &ParsedCommand, shell: &mut ShellState) {
 fn run_external(cli: &ParsedCommand, shell: &ShellState) {
     let mut cmd = Command::new(&cli.command);
 
-    if let Some(args) = cli.options.get("ARGUMENTS") {
-        cmd.args(args);
+    if cli.command.is_empty() {
+        return;
     }
+
+    cmd.args(cli.arguments.clone());
 
     let status = cmd
         .current_dir(&shell.working_directory)
