@@ -3,6 +3,7 @@ mod parsing;
 mod commands;
 // mod commands;
 use crate::parsing::simple_parse;
+
 pub struct ShellState {
     working_directory: String,
     home: String,
@@ -29,11 +30,8 @@ fn main() {
         }
         
         let cli=simple_parse(&input);
-        commands::execute(&cli, &mut shell_state);
-        // cli.options.
-        // if cli.command == "cd" {
+        commands::execute_command(&cli, &mut shell_state);
 
-        // }
     }
 }
 
