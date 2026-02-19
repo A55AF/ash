@@ -6,7 +6,7 @@ use crate::ShellState;
 pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
     match cli.command.as_str() {
         "cd" => change_directory(cli, shell),
-        _ => run_external(cli),
+        _ => run_external(cli, shell),
     }
 }
 
@@ -26,10 +26,18 @@ fn change_directory(cli: &ParsedCommand, shell: &mut ShellState) {
     }
 }
 
-fn run_external(cli: &ParsedCommand) {
+fn run_external(cli: &ParsedCommand, shell: &ShellState) {
     let mut cmd = Command::new(&cli.command);
 
     if let Some(args) = cli.options.get("ARGUMENTS") {
         cmd.args(args);
+    }
+
+    let status = cmd
+        .current_dir(&shell.working_directory)
+        .status();
+
+    if let Err(e) = status {
+        eprintln!("Execution failed: {}", e);
     }
 }
