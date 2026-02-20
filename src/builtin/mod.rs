@@ -31,3 +31,9 @@ pub fn exit_shell(cli: &ParsedCommand, shell: &mut ShellState) {
     shell.exit_code = code;
     shell.should_exit = true;
 }
+
+pub fn print_working_directory(shell: &mut ShellState) {
+    println!("{}", shell.working_directory);
+
+    shell.exit_code = Some(0);
+}

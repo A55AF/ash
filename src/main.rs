@@ -6,8 +6,8 @@ mod parsing;
 use crate::parsing::simple_parse;
 
 pub struct ShellState {
-    pub should_exit: bool,     // set to true when "exit" is called
-    pub exit_code: Option<i8>, // store the exit code
+    should_exit: bool,     // set to true when "exit" is called
+    exit_code: Option<i8>, // store the exit code
     working_directory: String,
     home: String,
 }
@@ -27,6 +27,10 @@ fn main() {
     let mut input = String::new();
 
     loop {
+        if shell_state.should_exit {
+            break;
+        }
+
         interface::interface(
             &username,
             &hostname,
