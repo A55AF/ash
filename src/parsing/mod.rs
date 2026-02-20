@@ -21,8 +21,9 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
     }
 
     result.command = command[0].to_string();
-    for arg in  &command[1..]{
+    for arg in &command[1..] {
         result.arguments.push(arg.to_string());
     }
+
     result
 }
