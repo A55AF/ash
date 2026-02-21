@@ -1,10 +1,22 @@
 use crate::parsing::ParsedCommand;
 use crate::ShellState;
 
-pub fn set_alias(cmd: &ParsedCommand, shell: &mut ShellState) {
+pub fn alias(cmd: &ParsedCommand, shell: &mut ShellState) {
     let key = cmd.arguments[0].split('=').next().unwrap().to_string();
     let val = cmd.arguments[0][key.len()+1..].to_string();
     shell.aliases.insert(key, val);
+}
+pub fn unalias(cmd: &ParsedCommand, shell: &mut ShellState){
+    let key = &cmd.arguments[0];
+    if key == "-a" {
+        shell.aliases.clear();
+    }
+    else if shell.aliases.contains_key(key) {
+        shell.aliases.remove(key);
+    }
+    else {
+        println!("{} alias not found", key);
+    }
 }
 pub fn get_alias(key: &str, shell: &ShellState) -> String {
     if shell.aliases.contains_key(key) {
