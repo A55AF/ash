@@ -4,6 +4,7 @@ use crate::builtin::echo;
 use crate::builtin::exit_shell;
 use crate::builtin::export;
 use crate::builtin::print_working_directory;
+use crate::builtin::unset;
 use crate::parsing::ParsedCommand;
 // use std::env;
 use std::process::Command;
@@ -15,6 +16,7 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
         "pwd" => print_working_directory(shell),
         "echo" => echo(cli, shell),
         "export" => export(cli, shell),
+        "unset" => unset(cli, shell),
         _ => run_external(cli, shell),
     }
 }

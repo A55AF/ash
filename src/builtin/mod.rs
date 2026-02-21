@@ -59,3 +59,11 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
 
     shell.exit_code = Some(0);
 }
+
+pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
+    for arg in cli.arguments.iter() {
+        shell.env_vars.remove(arg);
+    }
+
+    shell.exit_code = Some(0);
+}
