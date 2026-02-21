@@ -1,4 +1,6 @@
 use crate::builtin::alias;
+use crate::ShellState;
+
 pub struct ParsedCommand {
     pub command: String,
     pub arguments: Vec<String>,
@@ -13,7 +15,7 @@ impl ParsedCommand {
     }
 }
 
-pub fn simple_parse(input: &str) -> ParsedCommand {
+pub fn simple_parse(input: &str, shell: &mut ShellState) -> ParsedCommand {
     let mut command: Vec<&str> = input.trim().split_whitespace().collect();
 
     let mut result = ParsedCommand::new();
@@ -21,7 +23,7 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
         return result;
     }
 
-    let aliased = alias::get_alias(command[0]);
+    let aliased = alias::get_alias(command[0], shell);
     command = [aliased.split_whitespace().collect(), command[1..].to_vec()].concat();
     if command.is_empty(){
         return result;
