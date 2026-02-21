@@ -1,6 +1,8 @@
 use crate::ShellState;
 use crate::builtin::change_directory;
+use crate::builtin::echo;
 use crate::builtin::exit_shell;
+use crate::builtin::export;
 use crate::builtin::print_working_directory;
 use crate::parsing::ParsedCommand;
 // use std::env;
@@ -11,6 +13,8 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
         "cd" => change_directory(cli, shell),
         "exit" => exit_shell(cli, shell),
         "pwd" => print_working_directory(shell),
+        "echo" => echo(cli, shell),
+        "export" => export(cli, shell),
         _ => run_external(cli, shell),
     }
 }
@@ -23,6 +27,8 @@ fn run_external(cli: &ParsedCommand, shell: &ShellState) {
     }
 
     cmd.args(cli.arguments.clone());
+
+    cmd.envs(&shell.env_vars);
 
     let status = cmd.current_dir(&shell.working_directory).status();
 

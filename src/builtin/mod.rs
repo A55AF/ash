@@ -37,3 +37,25 @@ pub fn print_working_directory(shell: &mut ShellState) {
 
     shell.exit_code = Some(0);
 }
+
+pub fn echo(cli: &ParsedCommand, shell: &mut ShellState) {
+    println!("{}", cli.arguments.join(" "));
+
+    shell.exit_code = Some(0);
+}
+
+// NOTE: for now this function is temporary, until we make the conf file
+pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
+    for arg in cli.arguments.iter() {
+        if let Some((key, value)) = arg.split_once('=') {
+            shell.env_vars.insert(key.to_string(), value.to_string());
+        } else {
+            shell
+                .env_vars
+                .entry(arg.clone())
+                .or_insert_with(String::new);
+        }
+    }
+
+    shell.exit_code = Some(0);
+}

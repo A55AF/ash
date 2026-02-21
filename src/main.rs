@@ -2,6 +2,8 @@ mod builtin;
 mod commands;
 mod interface;
 mod parsing;
+use std::collections::HashMap;
+
 // mod commands;
 use crate::parsing::simple_parse;
 
@@ -10,6 +12,7 @@ pub struct ShellState {
     exit_code: Option<i8>, // store the exit code
     working_directory: String,
     home: String,
+    env_vars: HashMap<String, String>, // Dictionary for the environment variables
 }
 
 fn main() {
@@ -22,6 +25,7 @@ fn main() {
         exit_code: Some(0),
         home: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
+        env_vars: HashMap::new(),
     };
 
     let mut input = String::new();
