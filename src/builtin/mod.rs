@@ -39,7 +39,21 @@ pub fn print_working_directory(shell: &mut ShellState) {
 }
 
 pub fn echo(cli: &ParsedCommand, shell: &mut ShellState) {
-    println!("{}", cli.arguments.join(" "));
+    let mut output: Vec<String> = Vec::new();
+
+    for arg in &cli.arguments {
+        if arg.starts_with('$') {
+            let var_name: &str = &arg[1..]; // strip the leading '$'
+            match shell.env_vars.get(var_name) {
+                Some(value) => output.push(value.clone()),
+                None => output.push(String::new()), // undefined variable -> empty string
+            }
+        } else {
+            output.push(arg.clone());
+        }
+    }
+
+    println!("{}", output.join(" "));
 
     shell.exit_code = Some(0);
 }
