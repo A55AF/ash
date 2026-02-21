@@ -1,4 +1,4 @@
-use crate::builtin::alias::AliasManager;
+use crate::builtin::alias;
 pub struct ParsedCommand {
     pub command: String,
     pub arguments: Vec<String>,
@@ -20,9 +20,12 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
     if command.is_empty() {
         return result;
     }
-    let aliases = AliasManager::new();
-    let alias = aliases.get_alias(command[0]);
-    command = [alias.split_whitespace().collect(), command].concat();
+
+    let aliased = alias::get_alias(command[0]);
+    command = [aliased.split_whitespace().collect(), command[1..].to_vec()].concat();
+    if command.is_empty(){
+        return result;
+    }
 
     result.command = command[0].to_string();
     for arg in &command[1..] {

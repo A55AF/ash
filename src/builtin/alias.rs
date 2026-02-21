@@ -1,30 +1,30 @@
 use std::collections::HashMap;
 use crate::parsing::ParsedCommand;
+use std::sync::{OnceLock, Mutex, MutexGuard};
 
-pub struct AliasManager{
-    aliases: HashMap<String, String>
+static DICTIONARY: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+fn get_aliases() -> &'static Mutex<HashMap<String, String>> {
+    DICTIONARY.get_or_init(|| Mutex::new(HashMap::new()))
 }
-impl AliasManager {
-    pub fn new() -> Self {
-        Self {
-            aliases: HashMap::new()
+pub fn set_alias(cmd: &ParsedCommand) {
+    let mut aliases = get_aliases().lock().unwrap();
+    let key = cmd.arguments[0].split('=').next().unwrap().to_string();
+    let val = cmd.arguments[0][key.len()+1..].to_string();
+    aliases.insert(key, val);
+}
+pub fn get_alias(key: &str) -> String {
+    let mut aliases = get_aliases().lock().unwrap();
+    if aliases.contains_key(key) {
+        let input: Vec<&str> = aliases.get(key).unwrap().split_whitespace().collect();
+        if input.is_empty(){
+            return "".to_string();
         }
-    }
-    pub fn set_alias(&mut self, cmd: &ParsedCommand) {
-        // you should split after the first = only (still working on it)
-        let pair:Vec<&str> = cmd.arguments[0].split('=').collect();
-        if pair.len() != 2 {
-            panic!("Invalid arguments.");
+        let mut command = get_alias(input[0]);
+        for s in &input[1..] {
+            command.push_str(" ");
+            command.push_str(s);
         }
-        self.aliases.insert(pair[0].to_string(), pair[1].to_string());
+        return command;
     }
-    pub fn get_alias(&self, key: &str) -> String {
-        if self.aliases.contains_key(key) {
-            let command = self.aliases.get(key).unwrap().to_string();
-            let alias = command.split_whitespace().next().unwrap();
-            // command[0] should be erased (still working on it)
-            return  [self.get_alias(alias), " ".to_string(), command].concat();
-        }
-        key.to_string()
-    }
+    key.to_string()
 }

@@ -2,6 +2,7 @@ use crate::ShellState;
 use crate::builtin::change_directory;
 use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
+use crate::builtin::alias::set_alias;
 use crate::parsing::ParsedCommand;
 // use std::env;
 use std::process::Command;
@@ -11,6 +12,7 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
         "cd" => change_directory(cli, shell),
         "exit" => exit_shell(cli, shell),
         "pwd" => print_working_directory(shell),
+        "alias" => set_alias(cli),
         _ => run_external(cli, shell),
     }
 }
