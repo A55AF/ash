@@ -4,18 +4,56 @@ use std::env;
 use crate::ShellState;
 use crate::parsing::ParsedCommand;
 
+pub fn change_directory_to_home(shell: &mut ShellState) {
+    let target: String = shell.home.clone();
+
+    if let Err(e) = env::set_current_dir(&target) {
+        eprintln!("cd: {}: {}", target, e);
+        shell.exit_code = Some(1);
+        return;
+    }
+}
+
 // Eyad made this function
 pub fn change_directory(cli: &ParsedCommand, shell: &mut ShellState) {
-    let target = if cli.arguments.is_empty() {
-        &shell.home.as_str()
+    // Determine the target path
+    let target: String = if cli.arguments.is_empty() {
+        // No arguments: go to home
+        shell.home.clone()
     } else {
-        cli.arguments[0].as_str()
+        let first_arg: &String = &cli.arguments[0];
+        if first_arg.starts_with('~') {
+            // Expand ~ to home directory
+            if first_arg == "~" {
+                shell.home.clone()
+            } else {
+                // Replace the leading '~' with the home path
+                format!("{}{}", shell.home, &first_arg[1..])
+            }
+        } else {
+            // Normal path
+            first_arg.clone()
+        }
     };
 
-    if let Err(e) = env::set_current_dir(target) {
-        eprintln!("cd error: {}", e);
-    } else {
-        shell.working_directory = env::current_dir().unwrap().to_string_lossy().to_string();
+    // Attempt to change directory
+    if let Err(e) = env::set_current_dir(&target) {
+        eprintln!("cd: {}: {}", target, e);
+        shell.exit_code = Some(1);
+        return;
+    }
+
+    // Update the stored working directory
+    match env::current_dir() {
+        Ok(path) => {
+            shell.working_directory = path.to_string_lossy().to_string();
+            shell.exit_code = Some(0);
+        }
+        Err(e) => {
+            eprintln!("cd: unable to get current directory after change: {}", e);
+            shell.exit_code = Some(1);
+            // Keep old working_directory; it may be inaccurate, but better than panicking.
+        }
     }
 }
 
