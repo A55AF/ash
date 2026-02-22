@@ -13,16 +13,62 @@ impl ParsedCommand {
 }
 
 pub fn simple_parse(input: &str) -> ParsedCommand {
-    let command: Vec<&str> = input.trim().split_whitespace().collect();
-
     let mut result = ParsedCommand::new();
-    if command.is_empty() {
-        return result;
+    let mut chars = input.trim().chars().peekable();
+    let mut current_arg = String::new();
+    let mut in_quotes = false;
+    let mut in_quote = false;
+    let mut escaped = false;
+    let mut first_token = true;
+
+    while let Some(c) = chars.next() {
+        if escaped {
+            // Escaped character: add it literally
+            current_arg.push(c);
+            escaped = false;
+            continue;
+        }
+
+        match c {
+            '\\' => {
+                escaped = true;
+                // Don't add the backslash yet; next char will be added literally
+            }
+            '"' => {
+                in_quotes = !in_quotes;
+                // Quote character itself is not added to the argument
+            }
+            '\'' => {
+                in_quote = !in_quote;
+                // Quote character itself is not added to the argument
+            }
+            c if c.is_whitespace() && !in_quotes && !in_quote => {
+                // Whitespace outside quotes ends the current argument
+                if !current_arg.is_empty() {
+                    if first_token {
+                        result.command = current_arg;
+                        first_token = false;
+                    } else {
+                        result.arguments.push(current_arg);
+                    }
+                    current_arg = String::new();
+                }
+                // Skip this whitespace
+            }
+            _ => {
+                // Normal character: add to current argument
+                current_arg.push(c);
+            }
+        }
     }
 
-    result.command = command[0].to_string();
-    for arg in &command[1..] {
-        result.arguments.push(arg.to_string());
+    // Handle last argument
+    if !current_arg.is_empty() {
+        if first_token {
+            result.command = current_arg;
+        } else {
+            result.arguments.push(current_arg);
+        }
     }
 
     result
