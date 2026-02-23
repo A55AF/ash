@@ -12,62 +12,75 @@ impl ParsedCommand {
     }
 }
 
+#[derive(PartialEq)]
+enum QuoteMode {
+    Single,
+    Double,
+}
+
 pub fn simple_parse(input: &str) -> ParsedCommand {
     let mut result = ParsedCommand::new();
-    let mut chars = input.trim().chars().peekable();
-    let mut current_arg = String::new();
-    let mut in_quotes = false;
-    let mut in_quote = false;
-    let mut escaped = false;
+    let mut chars = input.trim().chars();
+    let mut current = String::new();
+    let mut mode: Option<QuoteMode> = None;
+    let mut escape = false;
     let mut first_token = true;
 
     while let Some(c) = chars.next() {
-        if escaped {
-            // Escaped character: add it literally
-            current_arg.push(c);
-            escaped = false;
+        if escape {
+            current.push(c);
+            escape = false;
             continue;
         }
 
         match c {
             '\\' => {
-                escaped = true;
-                // Don't add the backslash yet; next char will be added literally
-            }
-            '"' => {
-                in_quotes = !in_quotes;
-                // Quote character itself is not added to the argument
+                escape = true; // backslash escapes next character
             }
             '\'' => {
-                in_quote = !in_quote;
-                // Quote character itself is not added to the argument
-            }
-            c if c.is_whitespace() && !in_quotes && !in_quote => {
-                // Whitespace outside quotes ends the current argument
-                if !current_arg.is_empty() {
-                    if first_token {
-                        result.command = current_arg;
-                        first_token = false;
-                    } else {
-                        result.arguments.push(current_arg);
-                    }
-                    current_arg = String::new();
+                match mode {
+                    None => mode = Some(QuoteMode::Single), // enter single quotes
+                    Some(QuoteMode::Single) => mode = None, // exit single quotes
+                    Some(QuoteMode::Double) => current.push('\''), // literal inside double quotes
                 }
-                // Skip this whitespace
+            }
+            '"' => {
+                match mode {
+                    None => mode = Some(QuoteMode::Double), // enter double quotes
+                    Some(QuoteMode::Double) => mode = None, // exit double quotes
+                    Some(QuoteMode::Single) => current.push('"'), // literal inside single quotes
+                }
+            }
+            c if c.is_whitespace() => {
+                if mode.is_none() {
+                    // whitespace outside quotes ends the current argument
+                    if !current.is_empty() {
+                        if first_token {
+                            result.command = current;
+                            first_token = false;
+                        } else {
+                            result.arguments.push(current);
+                        }
+                        current = String::new();
+                    }
+                    // skip this whitespace
+                } else {
+                    // whitespace inside quotes is part of the argument
+                    current.push(c);
+                }
             }
             _ => {
-                // Normal character: add to current argument
-                current_arg.push(c);
+                current.push(c);
             }
         }
     }
 
-    // Handle last argument
-    if !current_arg.is_empty() {
+    // Handle any remaining characters after the loop
+    if !current.is_empty() {
         if first_token {
-            result.command = current_arg;
+            result.command = current;
         } else {
-            result.arguments.push(current_arg);
+            result.arguments.push(current);
         }
     }
 
