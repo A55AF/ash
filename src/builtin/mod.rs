@@ -1,8 +1,6 @@
 pub mod alias;
 
 use std::env;
-// use std::path::Path;
-
 use crate::ShellState;
 use crate::parsing::ParsedCommand;
 
@@ -65,7 +63,6 @@ pub fn exit_shell(cli: &ParsedCommand, shell: &mut ShellState) {
 
     if code == None {
         code = Some(0);
-        println!("Not a valid argument");
     }
 
     shell.exit_code = code;

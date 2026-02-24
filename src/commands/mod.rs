@@ -4,7 +4,6 @@ use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
 use crate::builtin::alias::{alias, unalias};
 use crate::parsing::ParsedCommand;
-// use std::env;
 use std::process::Command;
 
 pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
