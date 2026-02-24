@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::builtin::alias::check_aliases;
 
 mod builtin;
 mod commands;
@@ -15,6 +16,7 @@ pub struct ShellState {
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
+    aliases: HashMap<String, String>, // Dictionary for the aliases
 }
 
 fn main() {
@@ -28,6 +30,7 @@ fn main() {
         home: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         env_vars: HashMap::new(),
+        aliases: HashMap::new(),
     };
 
     change_directory_to_home(&mut shell_state);
@@ -56,6 +59,8 @@ fn main() {
             return;
         }
 
+        input = check_aliases(&input, &mut shell_state);
+        println!("{}", input);
         let cli = simple_parse(&input);
         commands::execute_command(&cli, &mut shell_state);
     }

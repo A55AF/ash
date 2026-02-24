@@ -1,3 +1,5 @@
+pub mod alias;
+
 use std::env;
 // use std::path::Path;
 
