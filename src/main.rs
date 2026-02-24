@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::builtin::alias::check_aliases;
 
 mod builtin;
 mod commands;
@@ -58,7 +59,9 @@ fn main() {
             return;
         }
 
-        let cli = simple_parse(&input, &mut shell_state);
+        input = check_aliases(&input, &mut shell_state);
+        println!("{}", input);
+        let cli = simple_parse(&input);
         commands::execute_command(&cli, &mut shell_state);
     }
 }

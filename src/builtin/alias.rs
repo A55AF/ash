@@ -36,13 +36,16 @@ pub fn get_alias(key: &str, shell: &ShellState) -> String {
         if val.is_empty(){
             return val;
         }
-        let mut command = val.split_whitespace().next().unwrap().to_string();
-        let l = command.len();
-        command = get_alias(&command, shell);
-        if l < val.len() {
-            command = [command, val[l + 1..].to_string()].concat();
-        }
-        return command;
+        return check_aliases(&val, shell);
     }
     key.to_string()
+}
+pub fn check_aliases(cmd: &str, shell: &ShellState) -> String {
+    let mut command = cmd.split_whitespace().next().unwrap().to_string();
+    let l = command.len();
+    command = get_alias(&command, shell);
+    if l < cmd.len() {
+        command = [command, " ".to_string(), cmd[l + 1..].to_string()].concat();
+    }
+    command
 }
