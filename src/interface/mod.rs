@@ -1,8 +1,6 @@
 use std::io::Write;
 
 pub(crate) fn interface(username: &str, hostname: &str, working_directory: &str, home: &str) {
-    // let pwd = if working_directory == home { "~" } else { working_directory };
-
     let pwd = if working_directory.starts_with(home) {
         if working_directory.len() == home.len() {
             // Exactly the home directory

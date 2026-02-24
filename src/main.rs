@@ -55,12 +55,7 @@ fn main() {
             continue;
         }
 
-        if input.trim() == "exit" {
-            return;
-        }
-
         input = check_aliases(&input, &mut shell_state);
-        println!("{}", input);
         let cli = simple_parse(&input);
         commands::execute_command(&cli, &mut shell_state);
     }
