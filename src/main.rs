@@ -1,13 +1,15 @@
-use std::collections::HashMap;
 use crate::builtin::alias::check_aliases;
+use std::collections::HashMap;
 
 mod builtin;
 mod commands;
+mod config;
 mod interface;
 mod parsing;
 
 // mod commands;
 use crate::builtin::change_directory_to_home;
+use crate::config::check_config_file;
 use crate::parsing::simple_parse;
 
 pub struct ShellState {
@@ -16,7 +18,7 @@ pub struct ShellState {
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
-    aliases: HashMap<String, String>, // Dictionary for the aliases
+    aliases: HashMap<String, String>,  // Dictionary for the aliases
 }
 
 fn main() {
@@ -34,6 +36,8 @@ fn main() {
     };
 
     change_directory_to_home(&mut shell_state);
+
+    check_config_file(&mut shell_state);
 
     let mut input = String::new();
 
