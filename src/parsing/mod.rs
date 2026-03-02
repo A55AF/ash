@@ -1,3 +1,7 @@
+
+// ─── Data Structures ───────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
 pub struct ParsedCommand {
     pub command: String,
     pub arguments: Vec<String>,
@@ -12,15 +16,26 @@ impl ParsedCommand {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum Operator {
+    And,        
+    Or,         
+None,
+Background,}
+
 #[derive(PartialEq)]
 enum QuoteMode {
     Single,
     Double,
 }
 
+
 pub fn simple_parse(input: &str) -> ParsedCommand {
     let mut result = ParsedCommand::new();
-    let mut chars = input.trim().chars();
+    let trimmed = input.trim();
+
+
+    let mut chars = trimmed.chars().peekable();
     let mut current = String::new();
     let mut mode: Option<QuoteMode> = None;
     let mut escape = false;
@@ -34,26 +49,22 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
         }
 
         match c {
-            '\\' => {
-                escape = true; // backslash escapes next character
-            }
-            '\'' => {
-                match mode {
-                    None => mode = Some(QuoteMode::Single), // enter single quotes
-                    Some(QuoteMode::Single) => mode = None, // exit single quotes
-                    Some(QuoteMode::Double) => current.push('\''), // literal inside double quotes
-                }
-            }
-            '"' => {
-                match mode {
-                    None => mode = Some(QuoteMode::Double), // enter double quotes
-                    Some(QuoteMode::Double) => mode = None, // exit double quotes
-                    Some(QuoteMode::Single) => current.push('"'), // literal inside single quotes
-                }
-            }
+            '\\' => escape = true,
+
+            '\'' => match mode {
+                None => mode = Some(QuoteMode::Single),
+                Some(QuoteMode::Single) => mode = None,
+                Some(QuoteMode::Double) => current.push('\''),
+            },
+
+            '"' => match mode {
+                None => mode = Some(QuoteMode::Double),
+                Some(QuoteMode::Double) => mode = None,
+                Some(QuoteMode::Single) => current.push('"'),
+            },
+
             c if c.is_whitespace() => {
                 if mode.is_none() {
-                    // whitespace outside quotes ends the current argument
                     if !current.is_empty() {
                         if first_token {
                             result.command = current;
@@ -63,19 +74,15 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
                         }
                         current = String::new();
                     }
-                    // skip this whitespace
                 } else {
-                    // whitespace inside quotes is part of the argument
                     current.push(c);
                 }
             }
-            _ => {
-                current.push(c);
-            }
+
+            _ => current.push(c),
         }
     }
 
-    // Handle any remaining characters after the loop
     if !current.is_empty() {
         if first_token {
             result.command = current;
@@ -86,3 +93,77 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
 
     result
 }
+
+
+pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
+    let mut segments: Vec<(ParsedCommand, Operator)> = Vec::new();
+    let mut current = String::new();
+    let mut chars = input.chars().peekable();
+  
+    while let Some(c) = chars.next() {
+   
+
+        match c {
+          
+            '&' => {
+                match chars.peek() {
+                    Some(&'&') => {
+                        chars.next();
+                        let seg = current.trim().to_string();
+                        if !seg.is_empty() {
+                        let cmd = simple_parse(&seg); // ← fix: &seg
+                            segments.push((cmd,Operator::And)); 
+                            current = String::new();
+                        }
+                    }
+                    _ => {
+                        // single & operator
+                        let seg = current.trim().to_string();
+                        if seg.is_empty() {
+                            // & is at start → it's a background prefix for next cmd
+                            current.push('&');
+                        } else {
+                            // & after a command → Background operator
+                                  let cmd = simple_parse(&seg);
+                           segments.push((cmd,Operator::Background)); 
+                            current = String::new();
+                        }
+                    }
+                }
+            }
+
+            '|' => {
+                if chars.peek() == Some(&'|') {
+                    // || operator → flush current with Or
+                    chars.next();
+                    let seg = current.trim().to_string();
+                    if !seg.is_empty() {
+                     let cmd = simple_parse(&seg); 
+                       segments.push((cmd, Operator::Or)); 
+                        current = String::new();
+                    }
+                } 
+                else {
+                    current.push(c);
+                }
+            }
+
+            _ => current.push(c),
+        }
+    }
+
+    // last segment
+    let seg = current.trim().to_string();
+    
+    if !seg.is_empty() {
+   let cmd = simple_parse(&seg); 
+        segments.push((cmd, Operator::None)); 
+    }
+
+    segments
+}
+
+
+
+
+

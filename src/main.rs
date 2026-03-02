@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use crate::builtin::alias::check_aliases;
-
 mod builtin;
 mod commands;
 mod interface;
@@ -9,6 +8,7 @@ mod parsing;
 // mod commands;
 use crate::builtin::change_directory_to_home;
 use crate::parsing::simple_parse;
+use crate::parsing::split_by_operators;
 
 pub struct ShellState {
     should_exit: bool,     // set to true when "exit" is called
@@ -55,8 +55,17 @@ fn main() {
             continue;
         }
 
-        input = check_aliases(&input, &mut shell_state);
-        let cli = simple_parse(&input);
-        commands::execute_command(&cli, &mut shell_state);
+       input = check_aliases(&input, &mut shell_state);
+       let cli = simple_parse(&input);
+       commands::execute_command(&cli, &mut shell_state);
+        
+       println!("\n$ {}", input);
+   let res= split_by_operators(&input) ;
+for (cmd, op) in res.iter() {
+    println!("Command    : {}", cmd.command);
+    println!("Args       : {:?}", cmd.arguments); 
+    println!("    Operator   : {:?}", op); // {:?} prints enum variant name
+        println!("{}", "─".repeat(30));
+}
     }
 }
