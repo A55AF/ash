@@ -1,4 +1,3 @@
-
 // ─── Data Structures ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
@@ -18,10 +17,11 @@ impl ParsedCommand {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
-    And,        
-    Or,         
-None,
-Background,}
+    And,
+    Or,
+    None,
+    Background,
+}
 
 #[derive(PartialEq)]
 enum QuoteMode {
@@ -29,11 +29,9 @@ enum QuoteMode {
     Double,
 }
 
-
 pub fn simple_parse(input: &str) -> ParsedCommand {
     let mut result = ParsedCommand::new();
     let trimmed = input.trim();
-
 
     let mut chars = trimmed.chars().peekable();
     let mut current = String::new();
@@ -94,25 +92,21 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
     result
 }
 
-
 pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
     let mut segments: Vec<(ParsedCommand, Operator)> = Vec::new();
     let mut current = String::new();
     let mut chars = input.chars().peekable();
-  
-    while let Some(c) = chars.next() {
-   
 
+    while let Some(c) = chars.next() {
         match c {
-          
             '&' => {
                 match chars.peek() {
                     Some(&'&') => {
                         chars.next();
                         let seg = current.trim().to_string();
                         if !seg.is_empty() {
-                        let cmd = simple_parse(&seg); // ← fix: &seg
-                            segments.push((cmd,Operator::And)); 
+                            let cmd = simple_parse(&seg); // ← fix: &seg
+                            segments.push((cmd, Operator::And));
                             current = String::new();
                         }
                     }
@@ -124,8 +118,8 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
                             current.push('&');
                         } else {
                             // & after a command → Background operator
-                                  let cmd = simple_parse(&seg);
-                           segments.push((cmd,Operator::Background)); 
+                            let cmd = simple_parse(&seg);
+                            segments.push((cmd, Operator::Background));
                             current = String::new();
                         }
                     }
@@ -138,12 +132,11 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
                     chars.next();
                     let seg = current.trim().to_string();
                     if !seg.is_empty() {
-                     let cmd = simple_parse(&seg); 
-                       segments.push((cmd, Operator::Or)); 
+                        let cmd = simple_parse(&seg);
+                        segments.push((cmd, Operator::Or));
                         current = String::new();
                     }
-                } 
-                else {
+                } else {
                     current.push(c);
                 }
             }
@@ -154,16 +147,11 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
 
     // last segment
     let seg = current.trim().to_string();
-    
+
     if !seg.is_empty() {
-   let cmd = simple_parse(&seg); 
-        segments.push((cmd, Operator::None)); 
+        let cmd = simple_parse(&seg);
+        segments.push((cmd, Operator::None));
     }
 
     segments
 }
-
-
-
-
-

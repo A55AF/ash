@@ -1,14 +1,13 @@
 use std::collections::HashMap;
-use crate::builtin::alias::check_aliases;
 mod builtin;
 mod commands;
+mod input;
 mod interface;
 mod parsing;
 
 // mod commands;
 use crate::builtin::change_directory_to_home;
-use crate::parsing::simple_parse;
-use crate::parsing::split_by_operators;
+use crate::input::read_input;
 
 pub struct ShellState {
     should_exit: bool,     // set to true when "exit" is called
@@ -16,7 +15,7 @@ pub struct ShellState {
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
-    aliases: HashMap<String, String>, // Dictionary for the aliases
+    aliases: HashMap<String, String>,  // Dictionary for the aliases
 }
 
 fn main() {
@@ -35,8 +34,6 @@ fn main() {
 
     change_directory_to_home(&mut shell_state);
 
-    let mut input = String::new();
-
     loop {
         if shell_state.should_exit {
             break;
@@ -48,24 +45,16 @@ fn main() {
             &shell_state.working_directory,
             &shell_state.home,
         );
-        input.clear();
-        std::io::stdin().read_line(&mut input).unwrap();
 
-        if input.is_empty() {
+        let res = read_input(&shell_state, false);
+        if res.is_none() {
             continue;
         }
-
-       input = check_aliases(&input, &mut shell_state);
-       let cli = simple_parse(&input);
-       commands::execute_command(&cli, &mut shell_state);
-        
-       println!("\n$ {}", input);
-   let res= split_by_operators(&input) ;
-for (cmd, op) in res.iter() {
-    println!("Command    : {}", cmd.command);
-    println!("Args       : {:?}", cmd.arguments); 
-    println!("    Operator   : {:?}", op); // {:?} prints enum variant name
-        println!("{}", "─".repeat(30));
-}
+        for (cmd, op) in res.unwrap().iter() {
+            println!("Command    : {}", cmd.command);
+            println!("Args       : {:?}", cmd.arguments);
+            println!("    Operator   : {:?}", op); // {:?} prints enum variant name
+            println!("{}", "─".repeat(30));
+        }
     }
 }
