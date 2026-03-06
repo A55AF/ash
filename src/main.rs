@@ -50,11 +50,6 @@ fn main() {
         if res.is_none() {
             continue;
         }
-        for (cmd, op) in res.unwrap().iter() {
-            println!("Command    : {}", cmd.command);
-            println!("Args       : {:?}", cmd.arguments);
-            println!("    Operator   : {:?}", op); // {:?} prints enum variant name
-            println!("{}", "─".repeat(30));
-        }
+        commands::execute_full_command(&res.unwrap(), &mut shell_state);
     }
 }

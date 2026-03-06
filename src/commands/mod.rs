@@ -3,8 +3,26 @@ use crate::builtin::{change_directory, echo, export, unset};
 use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
 use crate::builtin::alias::{alias, unalias};
-use crate::parsing::ParsedCommand;
+use crate::parsing::{Operator, ParsedCommand};
 use std::process::Command;
+
+pub fn execute_full_command(commands: &Vec<(ParsedCommand, Operator)>, shell: &mut ShellState) {
+    // Store the operator between the current command and the last command
+    let mut last_command_operation: Operator = Operator::None;
+    for (parsed_command, operator) in commands {
+        // Skip the current command if the last command failed in the AND 
+        // or if the last command success in the OR
+        if (last_command_operation == Operator::And && shell.exit_code != Some(0)) 
+        || (last_command_operation == Operator::Or && shell.exit_code == Some(0)) {
+            // Update the operator
+            last_command_operation = operator.clone();
+            continue;
+        }
+
+        last_command_operation = operator.clone();
+        execute_command(parsed_command, shell);
+    }
+}
 
 pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
     match cli.command.as_str() {
@@ -20,18 +38,14 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
     }
 }
 
-fn run_external(cli: &ParsedCommand, shell: &ShellState) {
+fn run_external(cli: &ParsedCommand, shell: &mut ShellState) {
     let mut cmd = Command::new(&cli.command);
 
-    if cli.command.is_empty() {
-        return;
-    }
+    let status = cmd.args(cli.arguments.clone()).status();
 
-    cmd.args(cli.arguments.clone());
-
-    let status = cmd.current_dir(&shell.working_directory).status();
-
-    if let Err(e) = status {
+    if let Err(ref e) = status {
         eprintln!("Execution failed: {}", e);
     }
+
+    shell.exit_code = Some(status.unwrap().code().unwrap().try_into().unwrap());
 }
