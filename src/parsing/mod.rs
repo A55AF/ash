@@ -1,4 +1,3 @@
-// ─── Data Structures ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub struct ParsedCommand {
@@ -14,14 +13,20 @@ impl ParsedCommand {
         }
     }
 }
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidOperator(String),
+    MissBefore(String),
+    MissAfter(String),
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
-    And,
-    Or,
-    None,
-    Background,
-}
+    And,        
+    Or,         
+None,
+Background,}
+
 
 #[derive(PartialEq)]
 enum QuoteMode {
@@ -29,9 +34,11 @@ enum QuoteMode {
     Double,
 }
 
+
 pub fn simple_parse(input: &str) -> ParsedCommand {
     let mut result = ParsedCommand::new();
     let trimmed = input.trim();
+
 
     let mut chars = trimmed.chars().peekable();
     let mut current = String::new();
@@ -92,21 +99,45 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
     result
 }
 
-pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
+
+pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>, ParseError> {
     let mut segments: Vec<(ParsedCommand, Operator)> = Vec::new();
     let mut current = String::new();
     let mut chars = input.chars().peekable();
+     let mut last_is_operator:bool=false;
 
     while let Some(c) = chars.next() {
+
         match c {
+          
             '&' => {
                 match chars.peek() {
                     Some(&'&') => {
                         chars.next();
+                              if chars.peek() == Some(&'&') ||last_is_operator{
+                        return Err(ParseError::InvalidOperator(
+                            "invalid operator".to_string(),
+                        ));
+                    }
+
                         let seg = current.trim().to_string();
+                           if seg.is_empty() {
+                        return Err(ParseError::MissBefore(
+                            "'&&' has no command before it".to_string(),
+                        ));
+                    }
+
+                    // check nothing after ||
+                    let rest = chars.clone().collect::<String>();
+                    if rest.trim().is_empty() {
+                        return Err(ParseError::MissAfter(
+                            "'&&' has no command after it".to_string(),
+                        ));
+                    }
                         if !seg.is_empty() {
-                            let cmd = simple_parse(&seg); // ← fix: &seg
-                            segments.push((cmd, Operator::And));
+                        let cmd = simple_parse(&seg); 
+                            segments.push((cmd,Operator::And)); 
+                            last_is_operator=true;
                             current = String::new();
                         }
                     }
@@ -114,12 +145,11 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
                         // single & operator
                         let seg = current.trim().to_string();
                         if seg.is_empty() {
-                            // & is at start → it's a background prefix for next cmd
                             current.push('&');
                         } else {
                             // & after a command → Background operator
-                            let cmd = simple_parse(&seg);
-                            segments.push((cmd, Operator::Background));
+                                  let cmd = simple_parse(&seg);
+                           segments.push((cmd,Operator::Background)); 
                             current = String::new();
                         }
                     }
@@ -128,20 +158,45 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
 
             '|' => {
                 if chars.peek() == Some(&'|') {
-                    // || operator → flush current with Or
                     chars.next();
-                    let seg = current.trim().to_string();
-                    if !seg.is_empty() {
-                        let cmd = simple_parse(&seg);
-                        segments.push((cmd, Operator::Or));
-                        current = String::new();
+                          if chars.peek() == Some(&'|')  || !last_is_operator{
+                        return Err(ParseError::InvalidOperator(
+                            "invalid operator ".to_string(),
+                        ));
                     }
-                } else {
+
+                    let seg = current.trim().to_string();
+                     if seg.is_empty() {
+                        return Err(ParseError::MissBefore(
+                            "'||' has no command before it".to_string(),
+                        ));
+                    }
+
+                    // check nothing after ||
+                    let rest = chars.clone().collect::<String>();
+                    if rest.trim().is_empty() {
+                        return Err(ParseError::MissAfter(
+                            "'||' has no command after it".to_string(),
+                        ));
+                    }
+                    if !seg.is_empty() {
+                     let cmd = simple_parse(&seg); 
+                       segments.push((cmd, Operator::Or)); 
+                       last_is_operator=true;
+
+                        current = String::new();
+
+                        
+                    }
+                } 
+                else {
                     current.push(c);
                 }
             }
 
-            _ => current.push(c),
+            _ => {current.push(c);
+  last_is_operator=false;
+}
         }
     }
 
@@ -149,9 +204,14 @@ pub fn split_by_operators(input: &str) -> Vec<(ParsedCommand, Operator)> {
     let seg = current.trim().to_string();
 
     if !seg.is_empty() {
-        let cmd = simple_parse(&seg);
-        segments.push((cmd, Operator::None));
+   let cmd = simple_parse(&seg); 
+        segments.push((cmd, Operator::None)); 
     }
 
-    segments
+    Ok(segments)
 }
+
+
+
+
+
