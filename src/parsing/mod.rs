@@ -25,7 +25,9 @@ pub enum Operator {
     And,        
     Or,         
 None,
-Background,}
+Background,
+Pipe,
+}
 
 
 #[derive(PartialEq)]
@@ -190,7 +192,32 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
                     }
                 } 
                 else {
-                    current.push(c);
+                          if  last_is_operator{
+                        return Err(ParseError::InvalidOperator(
+                            "invalid operator ".to_string(),
+                        ));
+                    }
+
+                     let seg = current.trim().to_string();
+
+                        if seg.is_empty() {
+                            return Err(ParseError::MissBefore(
+                                "'|' has no command before it".to_string(),
+                            ));
+                        }
+
+                        let rest = chars.clone().collect::<String>();
+
+                        if rest.trim().is_empty() {
+                            return Err(ParseError::MissAfter(
+                                "'|' has no command after it".to_string(),
+                            ));
+                        }
+
+                        segments.push((simple_parse(&seg), Operator::Pipe));
+                          last_is_operator=true;
+
+                        current = String::new();
                 }
             }
 
