@@ -1,8 +1,11 @@
 pub mod alias;
 
-use std::env;
-use crate::ShellState;
+use crate::config::add_config;
+use crate::config::remove_var_from_config;
 use crate::parsing::ParsedCommand;
+use crate::{ShellState, config};
+use std::env;
+use std::fs::File;
 
 pub fn change_directory_to_home(shell: &mut ShellState) {
     let target: String = shell.home.clone();
@@ -108,13 +111,28 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
         }
     }
 
+    if !shell.reading_config {
+        add_config(cli, shell);
+    }
+
     shell.exit_code = Some(0);
 }
 
 pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
+
+        remove_var_from_config(cli, shell);
     }
 
     shell.exit_code = Some(0);
+}
+
+pub fn source(cli: &ParsedCommand, shell: &mut ShellState) {
+    let config_file: File = match File::open(cli.arguments[0].to_string()) {
+        Ok(f) => f,
+        Err(e) => panic!("Failed to create .ashrc: {}", e),
+    };
+
+    config::read_config_file(config_file, shell);
 }

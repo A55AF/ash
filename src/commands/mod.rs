@@ -1,8 +1,9 @@
 use crate::ShellState;
-use crate::builtin::{change_directory, echo, export, unset};
+use crate::builtin::alias::{alias, unalias};
 use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
-use crate::builtin::alias::{alias, unalias};
+use crate::builtin::source;
+use crate::builtin::{change_directory, echo, export, unset};
 use crate::parsing::ParsedCommand;
 use std::process::Command;
 
@@ -16,6 +17,7 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
         "unset" => unset(cli, shell),
         "alias" => alias(cli, shell),
         "unalias" => unalias(cli, shell),
+        "source" => source(cli, shell),
         _ => run_external(cli, shell),
     }
 }
