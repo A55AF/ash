@@ -4,21 +4,24 @@ use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
 use crate::builtin::source;
 use crate::builtin::{change_directory, echo, export, unset};
+use crate::config::execute_conf_function;
 use crate::parsing::ParsedCommand;
 use std::process::Command;
 
 pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
-    match cli.command.as_str() {
-        "cd" => change_directory(cli, shell),
-        "exit" => exit_shell(cli, shell),
-        "pwd" => print_working_directory(shell),
-        "echo" => echo(cli, shell),
-        "export" => export(cli, shell),
-        "unset" => unset(cli, shell),
-        "alias" => alias(cli, shell),
-        "unalias" => unalias(cli, shell),
-        "source" => source(cli, shell),
-        _ => run_external(cli, shell),
+    if !execute_conf_function(&cli.command, shell) {
+        match cli.command.as_str() {
+            "cd" => change_directory(cli, shell),
+            "exit" => exit_shell(cli, shell),
+            "pwd" => print_working_directory(shell),
+            "echo" => echo(cli, shell),
+            "export" => export(cli, shell),
+            "unset" => unset(cli, shell),
+            "alias" => alias(cli, shell),
+            "unalias" => unalias(cli, shell),
+            "source" => source(cli, shell),
+            _ => run_external(cli, shell),
+        }
     }
 }
 

@@ -46,29 +46,66 @@ pub fn check_config_file(shell: &mut ShellState) {
 }
 
 pub fn read_config_file(file: File, shell: &mut ShellState) {
-    let mut reader = BufReader::new(file);
-    let mut line = String::new();
+    let mut reader: BufReader<File> = BufReader::new(file);
+    let mut line: String = String::new();
+    let mut process: String;
+    let mut cli: ParsedCommand;
+    let mut in_function: bool = false;
+    let mut current_function: String = String::new();
+    let mut function_body: Vec<String> = Vec::new();
+    let mut brace_count: usize = 0;
 
     shell.reading_config = true;
 
     loop {
         let bytes_read = match reader.read_line(&mut line) {
+            Ok(0) => break, // EOF
             Ok(n) => n,
             Err(e) => panic!("Failed to create .ashrc: {}", e),
         };
 
-        if bytes_read == 0 {
-            break; // EOF
-        }
-
-        if line.is_empty() || bytes_read == 1 || line.starts_with("#") {
+        if line.is_empty() || line.starts_with("#") || bytes_read == 1 {
             line.clear();
             continue;
         }
 
-        line = check_aliases(&line, shell);
-        let cli = simple_parse(&line);
-        execute_command(&cli, shell);
+        if !in_function {
+            if let Some(name) = is_function_definition(&line) {
+                in_function = true;
+                current_function = name;
+                function_body.clear();
+                brace_count = line.chars().filter(|&c| c == '{').count();
+                // If the opening brace is on the same line, we might already have some body content after it.
+                // For simplicity, we'll assume the brace is at the end and the body starts on next lines.
+                // You can enhance this to handle "name() { cmd; }" on one line.
+                line.clear();
+                continue;
+            } else {
+                process = check_aliases(&line, shell);
+                cli = simple_parse(&process);
+                execute_command(&cli, shell);
+            }
+        } else {
+            // We are inside a function body
+            brace_count += line.chars().filter(|&c| c == '{').count();
+            brace_count -= line.chars().filter(|&c| c == '}').count();
+
+            // Add the line to the function body (store the raw line)
+            if line.chars().all(|c| c != '{' && c != '}') {
+                let trimmed: &str = line.trim();
+                function_body.push(trimmed.to_string());
+            }
+
+            if brace_count == 0 {
+                // Function definition finished
+                shell
+                    .functions
+                    .insert(current_function.clone(), function_body.clone());
+                in_function = false;
+                current_function.clear();
+                function_body.clear();
+            }
+        }
 
         line.clear();
     }
@@ -150,4 +187,53 @@ pub fn remove_var_from_config(cli: &ParsedCommand, shell: &mut ShellState) {
     }
 
     shell.exit_code = Some(0);
+}
+
+fn is_function_definition(line: &str) -> Option<String> {
+    // Pattern: "name() {" or "function name {"
+    let line = line.trim();
+
+    // Case 1: "name() {"
+    if line.ends_with("){") || line.ends_with(") {") {
+        if let Some(open_paren) = line.find('(') {
+            let name = line[..open_paren].trim();
+            if is_valid_name(name) {
+                return Some(name.to_string());
+            }
+        }
+    }
+
+    // Case 2: "function name {"
+    if line.starts_with("function ") && line.contains('{') {
+        let after_function = &line["function".len()..].trim_start();
+        if let Some(brace_pos) = after_function.find('{') {
+            let name = after_function[..brace_pos].trim();
+            if is_valid_name(name) {
+                return Some(name.to_string());
+            }
+        }
+    }
+
+    None
+}
+
+fn is_valid_name(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
+pub fn execute_conf_function(fn_name: &str, shell: &mut ShellState) -> bool {
+    // First, check if it's a function
+    if let Some(body) = shell.functions.get(fn_name).cloned() {
+        // Execute the function body
+        // For now, we ignore arguments; later we can pass $1, $2 etc.
+        for line in body {
+            // Expand aliases and parse each line
+            let expanded = check_aliases(&line, shell);
+            let sub_cli = simple_parse(&expanded);
+            execute_command(&sub_cli, shell);
+        }
+        shell.exit_code = Some(0);
+        return true;
+    }
+    return false;
 }

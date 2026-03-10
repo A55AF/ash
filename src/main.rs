@@ -19,7 +19,7 @@ pub struct ShellState {
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
     aliases: HashMap<String, String>,  // Dictionary for the aliases
-    functions: Vec<String>,
+    functions: HashMap<String, Vec<String>>,
     reading_config: bool,
 }
 
@@ -35,7 +35,7 @@ fn main() {
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         env_vars: HashMap::new(),
         aliases: HashMap::new(),
-        functions: Vec::new(),
+        functions: HashMap::new(),
         reading_config: false,
     };
 
