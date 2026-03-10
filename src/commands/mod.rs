@@ -3,7 +3,7 @@ use crate::builtin::alias::{alias, unalias};
 use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
 use crate::builtin::source;
-use crate::builtin::{change_directory, echo, export, unset};
+use crate::builtin::{change_directory, echo, export, show_history, unset};
 use crate::config::execute_conf_function;
 use crate::parsing::ParsedCommand;
 use std::process::Command;
@@ -20,6 +20,7 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
             "alias" => alias(cli, shell),
             "unalias" => unalias(cli, shell),
             "source" => source(cli, shell),
+            "history" => show_history(shell),
             _ => run_external(cli, shell),
         }
     }

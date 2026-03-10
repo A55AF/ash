@@ -2,8 +2,10 @@ pub mod alias;
 
 use crate::config::add_config;
 use crate::config::remove_var_from_config;
+use crate::config::save_history;
 use crate::parsing::ParsedCommand;
 use crate::{ShellState, config};
+
 use std::env;
 use std::fs::File;
 
@@ -68,6 +70,8 @@ pub fn exit_shell(cli: &ParsedCommand, shell: &mut ShellState) {
         code = Some(0);
     }
 
+    save_history(shell);
+
     shell.exit_code = code;
     shell.should_exit = true;
 }
@@ -103,6 +107,9 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
             shell.env_vars.insert(key.to_string(), value.to_string());
+            // unsafe {
+            //     env::set_var(key, value);
+            // }
         } else {
             shell
                 .env_vars
@@ -122,6 +129,10 @@ pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
 
+        // unsafe {
+        //     env::remove_var(arg);
+        // }
+
         remove_var_from_config(cli, shell);
     }
 
@@ -135,4 +146,11 @@ pub fn source(cli: &ParsedCommand, shell: &mut ShellState) {
     };
 
     config::read_config_file(config_file, shell);
+}
+
+pub fn show_history(shell: &mut ShellState) {
+    for (i, cmd) in shell.history.iter().enumerate() {
+        println!("{:5}  {}", i + 1, cmd);
+    }
+    shell.exit_code = Some(0);
 }

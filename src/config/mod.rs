@@ -4,6 +4,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 
 use crate::ShellState;
 use crate::builtin::alias::check_aliases;
@@ -12,7 +13,8 @@ use crate::parsing::ParsedCommand;
 use crate::simple_parse;
 
 const CONFIG_FILE_NAME: &str = ".ashrc";
-const DEFAULT_CONFIG_FILE_CONTENT: &str = "# ~/.bashrc
+const HISTORY_FILE_NAME: &str = ".ash_history";
+const DEFAULT_CONFIG_FILE_CONTENT: &str = "# ~/.ashrc
 
 # Aliases
 alias ll='ls -alF'
@@ -235,5 +237,79 @@ pub fn execute_conf_function(fn_name: &str, shell: &mut ShellState) -> bool {
         shell.exit_code = Some(0);
         return true;
     }
+
+    shell.exit_code = Some(1);
     return false;
+}
+
+fn history_file_path(shell: &ShellState) -> PathBuf {
+    Path::new(&shell.home).join(HISTORY_FILE_NAME)
+}
+
+pub fn load_history(shell: &mut ShellState) {
+    let path = history_file_path(shell);
+    if !path.exists() {
+        return; // nothing to load
+    }
+
+    let file = match File::open(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Warning: could not open history file: {}", e);
+            shell.exit_code = Some(1);
+            return;
+        }
+    };
+
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        match line {
+            Ok(cmd) => {
+                // Optionally trim and skip empty lines
+                let cmd = cmd.trim().to_string();
+                if !cmd.is_empty() {
+                    shell.history.push(cmd);
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: error reading history line: {}", e);
+                shell.exit_code = Some(1);
+            }
+        }
+    }
+
+    // Keep only the last `history_max` entries (if you set a limit)
+    if shell.history.len() > shell.history_max {
+        let start = shell.history.len() - shell.history_max;
+        shell.history = shell.history.drain(start..).collect();
+    }
+
+    shell.exit_code = Some(0);
+}
+
+pub fn save_history(shell: &mut ShellState) {
+    let path: PathBuf = history_file_path(shell);
+    // Open in write mode, create if not exists, truncate (overwrite)
+    let mut file: File = match OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&path)
+    {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Warning: could not write history file: {}", e);
+            shell.exit_code = Some(1);
+            return;
+        }
+    };
+
+    for cmd in &shell.history {
+        if let Err(e) = writeln!(file, "{}", cmd) {
+            eprintln!("Warning: error writing history: {}", e);
+            shell.exit_code = Some(1);
+        }
+    }
+
+    shell.exit_code = Some(0);
 }
