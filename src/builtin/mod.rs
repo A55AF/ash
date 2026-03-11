@@ -8,6 +8,7 @@ use crate::{ShellState, config};
 
 use std::env;
 use std::fs::File;
+// use std::process::Command;
 
 pub fn change_directory_to_home(shell: &mut ShellState) {
     let target: String = shell.home.clone();
@@ -107,6 +108,8 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
             shell.env_vars.insert(key.to_string(), value.to_string());
+            // let mut cmd = Command::new(&cli.command);
+            // cmd.env(key, value);
             // unsafe {
             //     env::set_var(key, value);
             // }
@@ -128,11 +131,11 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
-
+        // let mut cmd = Command::new(&cli.command);
+        // cmd.env_remove(arg);
         // unsafe {
         //     env::remove_var(arg);
         // }
-
         remove_var_from_config(cli, shell);
     }
 
