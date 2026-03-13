@@ -4,6 +4,7 @@ use crate::config::add_config;
 use crate::config::remove_var_from_config;
 use crate::config::save_history;
 use crate::parsing::ParsedCommand;
+use crate::parsing::expand_variables;
 use crate::{ShellState, config};
 
 use std::env;
@@ -107,12 +108,8 @@ pub fn echo(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
-            shell.env_vars.insert(key.to_string(), value.to_string());
-            // let mut cmd = Command::new(&cli.command);
-            // cmd.env(key, value);
-            // unsafe {
-            //     env::set_var(key, value);
-            // }
+            let expanded_value: String = expand_variables(value, &shell.env_vars);
+            shell.env_vars.insert(key.to_string(), expanded_value);
         } else {
             shell
                 .env_vars
@@ -131,11 +128,6 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
-        // let mut cmd = Command::new(&cli.command);
-        // cmd.env_remove(arg);
-        // unsafe {
-        //     env::remove_var(arg);
-        // }
         remove_var_from_config(cli, shell);
     }
 

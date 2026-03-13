@@ -1,3 +1,5 @@
+use std::{iter::Peekable, str::Chars};
+
 pub struct ParsedCommand {
     pub command: String,
     pub arguments: Vec<String>,
@@ -84,5 +86,42 @@ pub fn simple_parse(input: &str) -> ParsedCommand {
         }
     }
 
+    result
+}
+
+// Add this function to src/parsing.rs
+
+pub fn expand_variables(
+    input: &str,
+    env_vars: &std::collections::HashMap<String, String>,
+) -> String {
+    let mut result: String = String::new();
+    let mut chars: Peekable<Chars<'_>> = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '$' {
+            // Check for valid variable name characters
+            let mut var_name: String = String::new();
+            while let Some(&next_c) = chars.peek() {
+                if next_c.is_alphanumeric() || next_c == '_' {
+                    var_name.push(next_c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            if !var_name.is_empty() {
+                // Replace variable with value, or empty string if not found
+                let val: String = env_vars.get(&var_name).cloned().unwrap_or_default();
+                result.push_str(&val);
+            } else {
+                // Handle lone '$' at end of string or followed by non-var char
+                result.push('$');
+            }
+        } else {
+            result.push(c);
+        }
+    }
     result
 }

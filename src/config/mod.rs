@@ -238,7 +238,7 @@ pub fn execute_conf_function(fn_name: &str, shell: &mut ShellState) -> bool {
         return true;
     }
 
-    shell.exit_code = Some(1);
+    // shell.exit_code = Some(1);
     return false;
 }
 

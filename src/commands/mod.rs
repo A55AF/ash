@@ -6,6 +6,7 @@ use crate::builtin::source;
 use crate::builtin::{change_directory, echo, export, show_history, unset};
 use crate::config::execute_conf_function;
 use crate::parsing::ParsedCommand;
+
 use std::process::Command;
 
 pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
@@ -26,18 +27,30 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
     }
 }
 
-fn run_external(cli: &ParsedCommand, shell: &ShellState) {
-    let mut cmd = Command::new(&cli.command);
-
+fn run_external(cli: &ParsedCommand, shell: &mut ShellState) {
     if cli.command.is_empty() {
         return;
     }
 
-    cmd.args(cli.arguments.clone());
+    let mut cmd = Command::new(&cli.command);
 
-    let status = cmd.current_dir(&shell.working_directory).status();
+    // let status;
 
-    if let Err(e) = status {
-        eprintln!("Execution failed: {}", e);
+    cmd.args(&cli.arguments)
+        .current_dir(&shell.working_directory)
+        .envs(&shell.env_vars);
+
+    match cmd.status() {
+        Ok(status) => {
+            shell.exit_code = status.code().map(|c| c as i8);
+        }
+        Err(e) => {
+            eprintln!("{}: {}", cli.command, e);
+            shell.exit_code = Some(127);
+        }
     }
+
+    // if let Err(e) = status {
+    //     eprintln!("Execution failed: {}", e);
+    // }
 }

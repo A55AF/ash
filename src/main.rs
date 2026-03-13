@@ -16,7 +16,8 @@ use crate::parsing::simple_parse;
 const MAX_HISTORY_SIZE: usize = 1000;
 
 pub struct ShellState {
-    should_exit: bool,     // set to true when "exit" is called
+    should_exit: bool, // set to true when "exit" is called
+    reading_config: bool,
     exit_code: Option<i8>, // store the exit code
     working_directory: String,
     home: String,
@@ -25,7 +26,6 @@ pub struct ShellState {
     functions: HashMap<String, Vec<String>>,
     history: Vec<String>,
     history_max: usize,
-    reading_config: bool,
 }
 
 fn main() {
@@ -35,15 +35,15 @@ fn main() {
 
     let mut shell_state = ShellState {
         should_exit: false,
+        reading_config: false,
         exit_code: Some(0),
         home: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
-        env_vars: HashMap::new(),
+        env_vars: std::env::vars().collect(),
         aliases: HashMap::new(),
         functions: HashMap::new(),
         history: Vec::new(),
         history_max: MAX_HISTORY_SIZE,
-        reading_config: false,
     };
 
     change_directory_to_home(&mut shell_state);
