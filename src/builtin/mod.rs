@@ -1,8 +1,15 @@
 pub mod alias;
 
-use std::env;
-use crate::ShellState;
+use crate::config::add_config;
+use crate::config::remove_var_from_config;
+use crate::config::save_history;
 use crate::parsing::ParsedCommand;
+use crate::{ShellState, config};
+use std::{iter::Peekable, str::Chars};
+
+use std::env;
+use std::fs::File;
+// use std::process::Command;
 
 pub fn change_directory_to_home(shell: &mut ShellState) {
     let target: String = shell.home.clone();
@@ -65,6 +72,8 @@ pub fn exit_shell(cli: &ParsedCommand, shell: &mut ShellState) {
         code = Some(0);
     }
 
+    save_history(shell);
+
     shell.exit_code = code;
     shell.should_exit = true;
 }
@@ -99,7 +108,8 @@ pub fn echo(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
-            shell.env_vars.insert(key.to_string(), value.to_string());
+            let expanded_value: String = check_env_vars(value, &shell);
+            shell.env_vars.insert(key.to_string(), expanded_value);
         } else {
             shell
                 .env_vars
@@ -108,13 +118,66 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
         }
     }
 
+    if !shell.reading_config {
+        add_config(cli, shell);
+    }
+
     shell.exit_code = Some(0);
 }
 
 pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
+        remove_var_from_config(cli, shell);
     }
 
     shell.exit_code = Some(0);
+}
+
+pub fn source(cli: &ParsedCommand, shell: &mut ShellState) {
+    let config_file: File = match File::open(cli.arguments[0].to_string()) {
+        Ok(f) => f,
+        Err(e) => panic!("Failed to create .ashrc: {}", e),
+    };
+
+    config::read_config_file(config_file, shell);
+}
+
+pub fn show_history(shell: &mut ShellState) {
+    for (i, cmd) in shell.history.iter().enumerate() {
+        println!("{:5}  {}", i + 1, cmd);
+    }
+    shell.exit_code = Some(0);
+}
+
+pub fn check_env_vars(input: &str, shell: &ShellState) -> String {
+    let mut result: String = String::new();
+    let mut chars: Peekable<Chars<'_>> = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '$' {
+            // Check for valid variable name characters
+            let mut var_name: String = String::new();
+            while let Some(&next_c) = chars.peek() {
+                if next_c.is_alphanumeric() || next_c == '_' {
+                    var_name.push(next_c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            if !var_name.is_empty() {
+                // Replace variable with value, or empty string if not found
+                let val: String = shell.env_vars.get(&var_name).cloned().unwrap_or_default();
+                result.push_str(&val);
+            } else {
+                // Handle lone '$' at end of string or followed by non-var char
+                result.push('$');
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }
