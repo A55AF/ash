@@ -4,8 +4,8 @@ use crate::config::add_config;
 use crate::config::remove_var_from_config;
 use crate::config::save_history;
 use crate::parsing::ParsedCommand;
-use crate::parsing::expand_variables;
 use crate::{ShellState, config};
+use std::{iter::Peekable, str::Chars};
 
 use std::env;
 use std::fs::File;
@@ -108,7 +108,7 @@ pub fn echo(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
-            let expanded_value: String = expand_variables(value, &shell.env_vars);
+            let expanded_value: String = check_env_vars(value, &shell);
             shell.env_vars.insert(key.to_string(), expanded_value);
         } else {
             shell
@@ -148,4 +148,36 @@ pub fn show_history(shell: &mut ShellState) {
         println!("{:5}  {}", i + 1, cmd);
     }
     shell.exit_code = Some(0);
+}
+
+pub fn check_env_vars(input: &str, shell: &ShellState) -> String {
+    let mut result: String = String::new();
+    let mut chars: Peekable<Chars<'_>> = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '$' {
+            // Check for valid variable name characters
+            let mut var_name: String = String::new();
+            while let Some(&next_c) = chars.peek() {
+                if next_c.is_alphanumeric() || next_c == '_' {
+                    var_name.push(next_c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            if !var_name.is_empty() {
+                // Replace variable with value, or empty string if not found
+                let val: String = shell.env_vars.get(&var_name).cloned().unwrap_or_default();
+                result.push_str(&val);
+            } else {
+                // Handle lone '$' at end of string or followed by non-var char
+                result.push('$');
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }

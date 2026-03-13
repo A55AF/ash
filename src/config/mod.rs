@@ -119,8 +119,17 @@ pub fn add_config(cli: &ParsedCommand, shell: &mut ShellState) {
     let mut command: String = String::from(&cli.command);
 
     for arg in cli.arguments.iter() {
-        command.push_str(" ");
-        command.push_str(arg);
+        command.push(' ');
+
+        // Check if the argument contains whitespace or is empty.
+        // If so, wrap it in double quotes to ensure it parses correctly later.
+        if arg.contains(' ') || arg.is_empty() {
+            // Escape any existing double quotes inside the argument
+            let escaped = arg.replace("\"", "\\\"");
+            command.push_str(&format!("\"{}\"", escaped));
+        } else {
+            command.push_str(arg);
+        }
     }
 
     command.push('\n');
