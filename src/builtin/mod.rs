@@ -1,4 +1,5 @@
 pub mod alias;
+pub mod redirection;
 
 use std::env;
 use crate::ShellState;
