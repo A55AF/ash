@@ -4,18 +4,17 @@ mod builtin;
 mod commands;
 mod interface;
 mod parsing;
-// mod commands;
 use crate::builtin::change_directory_to_home;
-use crate::parsing::simple_parse;
+use crate::commands::{Job, execute_full_command, handle_background_processes};
 use crate::parsing::split_by_operators;
-use crate::parsing::ParseError;
 pub struct ShellState {
     should_exit: bool,     // set to true when "exit" is called
     exit_code: Option<i8>, // store the exit code
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
-    aliases: HashMap<String, String>, // Dictionary for the aliases
+    aliases: HashMap<String, String>, // Dictionary for the aliases\
+    background_processes: Vec<Job>,
 }
 
 fn main() {
@@ -30,6 +29,7 @@ fn main() {
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         env_vars: HashMap::new(),
         aliases: HashMap::new(),
+        background_processes: Vec::new(),
     };
 
     change_directory_to_home(&mut shell_state);
@@ -41,6 +41,13 @@ fn main() {
             break;
         }
 
+        // Get all the background processes 
+        // and remove the done ones (temporarily)
+
+        // TODO: Handle it with a monitor/timer to check for 
+        // the running processes every 1 second
+        handle_background_processes(&mut shell_state);
+
         interface::interface(
             &username,
             &hostname,
@@ -50,34 +57,12 @@ fn main() {
         input.clear();
         std::io::stdin().read_line(&mut input).unwrap();
 
-        if input.is_empty() {
+        if input.trim().is_empty() {
             continue;
         }
 
-    //    input = check_aliases(&input, &mut shell_state);
-    //    let cli = simple_parse(&input);
-    //    commands::execute_command(&cli, &mut shell_state);
-        
-       println!("\n$ {}", input);
-match split_by_operators(&input) {
-    Ok(res) => {
-        for (cmd, op) in res.iter() {
-            println!("Command    : {}", cmd.command);
-            println!("Args       : {:?}", cmd.arguments);
-            println!("Operator   : {:?}", op);
-            println!();
-        }
-    }
-    Err(ParseError::InvalidOperator(msg)) => {
-        eprintln!("parse error: {}", msg);
-    }
-    Err(ParseError::MissAfter(msg)) => {
-        eprintln!("ash: syntax error: {}", msg);
-    }
-    Err(ParseError::MissBefore(msg)) => {
-        eprintln!("ash: syntax error: {}", msg);
-    }
-}
-
+        input = check_aliases(&input, &mut shell_state);
+        let cli = split_by_operators(&input);
+        execute_full_command(&cli.unwrap(), &mut shell_state);
     }
 }

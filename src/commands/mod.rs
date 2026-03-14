@@ -4,7 +4,13 @@ use crate::builtin::exit_shell;
 use crate::builtin::print_working_directory;
 use crate::builtin::alias::{alias, unalias};
 use crate::parsing::{Operator, ParsedCommand};
-use std::process::Command;
+use std::process::{Child, Command};
+
+pub struct Job {
+    index: i8,
+    child: Child,
+    command: String,
+}
 
 pub fn execute_full_command(commands: &Vec<(ParsedCommand, Operator)>, shell: &mut ShellState) {
     // Store the operator between the current command and the last command
@@ -20,11 +26,11 @@ pub fn execute_full_command(commands: &Vec<(ParsedCommand, Operator)>, shell: &m
         }
 
         last_command_operation = operator.clone();
-        execute_command(parsed_command, shell);
+        execute_command(parsed_command, &operator, shell);
     }
 }
 
-pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
+pub fn execute_command(cli: &ParsedCommand, operator: &Operator ,shell: &mut ShellState) {
     match cli.command.as_str() {
         "cd" => change_directory(cli, shell),
         "exit" => exit_shell(cli, shell),
@@ -34,18 +40,61 @@ pub fn execute_command(cli: &ParsedCommand, shell: &mut ShellState) {
         "unset" => unset(cli, shell),
         "alias" => alias(cli, shell),
         "unalias" => unalias(cli, shell),
-        _ => run_external(cli, shell),
+        _ => {
+            if operator == &Operator::Background {
+                run_external(cli, true, shell);
+            } else {
+                run_external(cli, false, shell);
+            }
+        },
     }
 }
 
-fn run_external(cli: &ParsedCommand, shell: &mut ShellState) {
+fn run_external(cli: &ParsedCommand,is_background: bool ,shell: &mut ShellState) {
     let mut cmd = Command::new(&cli.command);
 
-    let status = cmd.args(cli.arguments.clone()).status();
-
-    if let Err(ref e) = status {
-        eprintln!("Execution failed: {}", e);
+    // Run the process and handle if it's failed
+    let running_process = cmd.args(&cli.arguments).spawn();
+    if let Err(ref e) = running_process {
+        eprintln!("Execution failed: {}", e)
     }
 
-    shell.exit_code = Some(status.unwrap().code().unwrap().try_into().unwrap());
+    // Get the processs id and the child itself to handle
+    // if it's a background process
+    let mut child = running_process.unwrap();
+    let pid = child.id();
+    let mut status = Some(0);
+
+    if is_background {
+        // Get the last index inthe background processes 
+        // and concatenate the full command to print
+        let job_index = (shell.background_processes.len() + 1) as i8;
+
+        shell.background_processes.push(Job {
+            index: job_index,
+            child,
+            command: cli.command.clone(),
+        });
+        println!("    [{}] {}", job_index, pid);
+    } else {
+        status = child.wait().unwrap().code();
+    }
+
+    shell.exit_code = Some(status.unwrap() as i8);
+}
+
+pub fn handle_background_processes(shell: &mut ShellState) {
+    shell.background_processes.retain_mut(|job| {
+        match job.child.try_wait() {
+            Ok(Some(_status)) => {
+                println!("    [{}] + done       {}", job.index, job.command);
+                false
+            },
+            Ok(None) => true,
+            Err(e) => {
+                eprintln!("Error checking process {}", e);
+                false
+            },
+        }
+    });
 }
