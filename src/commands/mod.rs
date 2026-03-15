@@ -37,8 +37,8 @@ fn run_external(cli: &ParsedCommand, shell: &mut ShellState) {
     // let status;
 
     cmd.args(&cli.arguments)
-        .current_dir(&shell.working_directory)
-        .envs(&shell.env_vars);
+        .current_dir(&shell.working_directory);
+    //.envs(&shell.env_vars);
 
     match cmd.status() {
         Ok(status) => {

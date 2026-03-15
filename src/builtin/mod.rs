@@ -109,7 +109,12 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         if let Some((key, value)) = arg.split_once('=') {
             let expanded_value: String = check_env_vars(value, &shell);
-            shell.env_vars.insert(key.to_string(), expanded_value);
+            shell
+                .env_vars
+                .insert(key.to_string(), expanded_value.clone());
+            unsafe {
+                std::env::set_var(key, expanded_value);
+            }
         } else {
             shell
                 .env_vars
@@ -128,6 +133,9 @@ pub fn export(cli: &ParsedCommand, shell: &mut ShellState) {
 pub fn unset(cli: &ParsedCommand, shell: &mut ShellState) {
     for arg in cli.arguments.iter() {
         shell.env_vars.remove(arg);
+        unsafe {
+            std::env::remove_var(arg);
+        }
         remove_var_from_config(cli, shell);
     }
 
@@ -177,6 +185,87 @@ pub fn check_env_vars(input: &str, shell: &ShellState) -> String {
             }
         } else {
             result.push(c);
+        }
+    }
+    result
+}
+
+pub fn expand_env_vars(input: &str, shell: &mut ShellState) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+
+    // Track quote state
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+
+    while let Some(c) = chars.next() {
+        match c {
+            // Toggle single quote state (prevents expansion)
+            '\'' if !in_double_quote => {
+                in_single_quote = !in_single_quote;
+                result.push(c);
+            }
+            // Toggle double quote state (allows expansion)
+            '"' if !in_single_quote => {
+                in_double_quote = !in_double_quote;
+                result.push(c);
+            }
+            // Handle escape characters (prevent expansion of \$)
+            '\\' if !in_single_quote => {
+                result.push(c);
+                if let Some(&next_c) = chars.peek() {
+                    // Consume the next character immediately so it isn't processed
+                    result.push(next_c);
+                    chars.next();
+                }
+            }
+            // Handle variable expansion
+            '$' if !in_single_quote => {
+                // Check for ${VAR} syntax
+                if chars.peek() == Some(&'{') {
+                    chars.next(); // consume '{'
+                    let mut var_name = String::new();
+
+                    // Collect characters until '}'
+                    while let Some(&next_c) = chars.peek() {
+                        if next_c == '}' {
+                            chars.next(); // consume '}'
+                            break;
+                        }
+                        var_name.push(next_c);
+                        chars.next();
+                    }
+
+                    // Replace with value or empty string
+                    if let Some(val) = shell.env_vars.get(&var_name) {
+                        result.push_str(val);
+                    }
+                } else {
+                    // Handle standard $VAR syntax
+                    let mut var_name = String::new();
+
+                    // Variable names start with alpha/underscore, followed by alphanum/underscore
+                    while let Some(&next_c) = chars.peek() {
+                        if next_c.is_alphanumeric() || next_c == '_' {
+                            var_name.push(next_c);
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if !var_name.is_empty() {
+                        if let Some(val) = shell.env_vars.get(&var_name) {
+                            result.push_str(val);
+                        }
+                    } else {
+                        // Lone '$' or '$' followed by non-var char (e.g., $$)
+                        result.push('$');
+                    }
+                }
+            }
+            // Default case: append character
+            _ => result.push(c),
         }
     }
     result

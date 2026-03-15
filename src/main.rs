@@ -1,5 +1,6 @@
 use crate::builtin::alias::check_aliases;
 use std::collections::HashMap;
+// use std::collections::hash_map::Keys;
 
 mod builtin;
 mod commands;
@@ -52,6 +53,12 @@ fn main() {
 
     load_history(&mut shell_state);
 
+    for env in shell_state.env_vars.iter() {
+        unsafe {
+            std::env::set_var(env.0.to_string(), env.1.to_string());
+        }
+    }
+
     let mut input = String::new();
 
     loop {
@@ -86,6 +93,7 @@ fn main() {
         }
 
         input = check_aliases(&input, &mut shell_state);
+        input = builtin::expand_env_vars(&input, &mut shell_state);
         let cli = simple_parse(&input);
         commands::execute_command(&cli, &mut shell_state);
     }
