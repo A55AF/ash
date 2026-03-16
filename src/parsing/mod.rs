@@ -231,3 +231,13 @@ last_is_operator=true;
 
     Ok(segments)
 }
+pub fn handle_parse(input: &str) -> Option<Vec<(ParsedCommand, Operator)>> {
+    match split_by_operators(input) {
+        Ok(res) => {
+            Some(res)
+        }
+        Err(ParseError::InvalidOperator(msg))  => { eprintln!("ash: syntax error: {}", msg); None }
+        Err(ParseError::MissBefore(msg))       => { eprintln!("ash: syntax error: {}", msg); None }
+        Err(ParseError::MissAfter(msg))        => { eprintln!("ash: syntax error: {}", msg); None }
+    }
+}

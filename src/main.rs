@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use crate::parsing::ParseError;
+use crate::parsing::handle_parse;
 use crate::builtin::alias::check_aliases;
 mod builtin;
 mod commands;
@@ -62,7 +64,8 @@ fn main() {
         }
 
         input = check_aliases(&input, &mut shell_state);
-        let cli = split_by_operators(&input);
-        execute_full_command(&cli.unwrap(), &mut shell_state);
-    }
-}
+         let res = handle_parse(&input);
+       // execute_full_command(&cli.unwrap(), &mut shell_state);
+    
+    
+}}
