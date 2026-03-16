@@ -111,7 +111,7 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
                         chars.next();
                         if chars.peek() == Some(&'&') || last_is_operator {
                             return Err(ParseError::InvalidOperator(
-                                "invalid operator".to_string(),
+                                "invalid operator &&".to_string(),
                             ));
                         }
 
@@ -131,21 +131,27 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
                         }
                         if !seg.is_empty() {
                             let cmd = simple_parse(&seg);
+
                             segments.push((cmd, Operator::And));
                             last_is_operator = true;
                             current = String::new();
                         }
                     }
                     _ => {
-                        // single & operator
+
+ // single & operator
                         let seg = current.trim().to_string();
                         if seg.is_empty() {
-                            current.push('&');
-                        } else {
+ return Err(ParseError::InvalidOperator(
+                            "invalid operator &".to_string(),
+                        ));                        }                       
+                    else {
                             // & after a command → Background operator
                             let cmd = simple_parse(&seg);
                             segments.push((cmd, Operator::Background));
                             current = String::new();
+last_is_operator=true;
+
                         }
                     }
                 }
@@ -154,10 +160,11 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
             '|' => {
                 if chars.peek() == Some(&'|') {
                     chars.next();
-                    if chars.peek() == Some(&'|') || !last_is_operator {
-                        return Err(ParseError::InvalidOperator("invalid operator ".to_string()));
-                    }
-
+                          if chars.peek() == Some(&'|')  || last_is_operator{
+                        return Err(ParseError::InvalidOperator(
+                            "invalid operator ||".to_string(),
+                        ));
+}
                     let seg = current.trim().to_string();
                     if seg.is_empty() {
                         return Err(ParseError::MissBefore(
@@ -181,7 +188,7 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
                     }
                 } else {
                     if last_is_operator {
-                        return Err(ParseError::InvalidOperator("invalid operator ".to_string()));
+                        return Err(ParseError::InvalidOperator("invalid operator | ".to_string()));
                     }
 
                     let seg = current.trim().to_string();
