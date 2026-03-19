@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use crate::builtin::alias::check_aliases;
 use crate::parsing::ParseError;
 use crate::parsing::handle_parse;
-use crate::builtin::alias::check_aliases;
+use std::collections::HashMap;
 mod builtin;
 mod commands;
 mod interface;
@@ -15,7 +15,7 @@ pub struct ShellState {
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
-    aliases: HashMap<String, String>, // Dictionary for the aliases\
+    aliases: HashMap<String, String>,  // Dictionary for the aliases\
     background_processes: Vec<Job>,
 }
 
@@ -43,10 +43,7 @@ fn main() {
             break;
         }
 
-        // Get all the background processes 
-        // and remove the done ones (temporarily)
-
-        // TODO: Handle it with a monitor/timer to check for 
+        // TODO: Handle it with a monitor/timer to check for
         // the running processes every 1 second
         handle_background_processes(&mut shell_state);
 
@@ -64,8 +61,7 @@ fn main() {
         }
 
         input = check_aliases(&input, &mut shell_state);
-         let res = handle_parse(&input);
-       // execute_full_command(&cli.unwrap(), &mut shell_state);
-    
-    
-}}
+        let cli = handle_parse(&input);
+        execute_full_command(&cli.unwrap(), &mut shell_state);
+    }
+}

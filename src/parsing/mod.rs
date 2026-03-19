@@ -138,20 +138,18 @@ pub fn split_by_operators(input: &str) -> Result<Vec<(ParsedCommand, Operator)>,
                         }
                     }
                     _ => {
-
- // single & operator
+                        // single & operator
                         let seg = current.trim().to_string();
                         if seg.is_empty() {
- return Err(ParseError::InvalidOperator(
-                            "invalid operator &".to_string(),
-                        ));                        }                       
-                    else {
+                            return Err(ParseError::InvalidOperator(
+                                "invalid operator &".to_string(),
+                            ));
+                        } else {
                             // & after a command → Background operator
                             let cmd = simple_parse(&seg);
                             segments.push((cmd, Operator::Background));
                             current = String::new();
-last_is_operator=true;
-
+                            last_is_operator = true;
                         }
                     }
                 }
@@ -160,11 +158,11 @@ last_is_operator=true;
             '|' => {
                 if chars.peek() == Some(&'|') {
                     chars.next();
-                          if chars.peek() == Some(&'|')  || last_is_operator{
+                    if chars.peek() == Some(&'|') || last_is_operator {
                         return Err(ParseError::InvalidOperator(
                             "invalid operator ||".to_string(),
                         ));
-}
+                    }
                     let seg = current.trim().to_string();
                     if seg.is_empty() {
                         return Err(ParseError::MissBefore(
@@ -188,7 +186,9 @@ last_is_operator=true;
                     }
                 } else {
                     if last_is_operator {
-                        return Err(ParseError::InvalidOperator("invalid operator | ".to_string()));
+                        return Err(ParseError::InvalidOperator(
+                            "invalid operator | ".to_string(),
+                        ));
                     }
 
                     let seg = current.trim().to_string();
@@ -233,11 +233,18 @@ last_is_operator=true;
 }
 pub fn handle_parse(input: &str) -> Option<Vec<(ParsedCommand, Operator)>> {
     match split_by_operators(input) {
-        Ok(res) => {
-            Some(res)
+        Ok(res) => Some(res),
+        Err(ParseError::InvalidOperator(msg)) => {
+            eprintln!("ash: syntax error: {}", msg);
+            None
         }
-        Err(ParseError::InvalidOperator(msg))  => { eprintln!("ash: syntax error: {}", msg); None }
-        Err(ParseError::MissBefore(msg))       => { eprintln!("ash: syntax error: {}", msg); None }
-        Err(ParseError::MissAfter(msg))        => { eprintln!("ash: syntax error: {}", msg); None }
+        Err(ParseError::MissBefore(msg)) => {
+            eprintln!("ash: syntax error: {}", msg);
+            None
+        }
+        Err(ParseError::MissAfter(msg)) => {
+            eprintln!("ash: syntax error: {}", msg);
+            None
+        }
     }
 }
