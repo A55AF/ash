@@ -62,6 +62,8 @@ fn main() {
 
         input = check_aliases(&input, &mut shell_state);
         let cli = handle_parse(&input);
-        execute_full_command(&cli.unwrap(), &mut shell_state);
+        if let Some(commands) = cli {
+            execute_full_command(&commands, &mut shell_state);
+        }
     }
 }
