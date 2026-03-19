@@ -1,10 +1,11 @@
 use crate::ShellState;
 use crate::builtin::alias::{alias, unalias};
 use crate::builtin::exit_shell;
-use crate::builtin::print_working_directory;
-use crate::builtin::{change_directory, echo, export, unset};
+use crate::builtin::{print_working_directory, source};
+use crate::builtin::{change_directory, echo, export, show_history, unset};
 use crate::parsing::{Operator, ParsedCommand};
 use std::process::{Child, Command};
+use crate::config::execute_conf_function;
 
 pub struct Job {
     index: i8,
@@ -51,16 +52,20 @@ pub fn execute_command(cli: &ParsedCommand, operator: &Operator, shell: &mut She
     } else {
         false
     };
-    match cli.command.as_str() {
-        "cd" => run_builtin(cli, is_background, shell, change_directory),
-        "exit" => exit_shell(cli, shell),
-        "pwd" => run_builtin(cli, is_background, shell, |_, s| print_working_directory(s)),
-        "echo" => run_builtin(cli, is_background, shell, echo),
-        "export" => run_builtin(cli, is_background, shell, export),
-        "unset" => run_builtin(cli, is_background, shell, unset),
-        "alias" => run_builtin(cli, is_background, shell, alias),
-        "unalias" => run_builtin(cli, is_background, shell, unalias),
-        _ => run_external(cli, is_background, shell),
+    if !execute_conf_function(&cli.command, shell) {
+        match cli.command.as_str() {
+            "cd" => run_builtin(cli, is_background, shell, change_directory),
+            "exit" => exit_shell(cli, shell),
+            "pwd" => run_builtin(cli, is_background, shell, |_, s| print_working_directory(s)),
+            "echo" => run_builtin(cli, is_background, shell, echo),
+            "export" => run_builtin(cli, is_background, shell, export),
+            "unset" => run_builtin(cli, is_background, shell, unset),
+            "alias" => run_builtin(cli, is_background, shell, alias),
+            "unalias" => run_builtin(cli, is_background, shell, unalias),
+            "source" => run_builtin(cli, is_background, shell, source),
+            "history" => run_builtin(cli, is_background, shell, |_,s| show_history(s)),
+            _ => run_external(cli, is_background, shell),
+        }
     }
 }
 
@@ -220,4 +225,8 @@ fn run_pipeline(pipeline: &Vec<ParsedCommand>, operator: &Operator, shell: &mut 
         }
         shell.exit_code = Some(last_status as i8);
     }
+
+    // if let Err(e) = status {
+    //     eprintln!("Execution failed: {}", e);
+    // }
 }
