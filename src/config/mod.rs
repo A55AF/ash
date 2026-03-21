@@ -85,7 +85,7 @@ pub fn read_config_file(file: File, shell: &mut ShellState) {
             } else {
                 process = check_aliases(&line, shell);
                 cli = simple_parse(&process);
-                execute_command(&cli, shell);
+                execute_command(&cli, &crate::parsing::Operator::Background, shell);
             }
         } else {
             // We are inside a function body
@@ -241,7 +241,7 @@ pub fn execute_conf_function(fn_name: &str, shell: &mut ShellState) -> bool {
             // Expand aliases and parse each line
             let expanded = check_aliases(&line, shell);
             let sub_cli = simple_parse(&expanded);
-            execute_command(&sub_cli, shell);
+            execute_command(&sub_cli, &crate::parsing::Operator::Background, shell);
         }
         shell.exit_code = Some(0);
         return true;
