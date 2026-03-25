@@ -1,15 +1,13 @@
 use crate::builtin::alias::check_aliases;
+use crate::parsing::handle_parse;
 use std::collections::HashMap;
-// use std::collections::hash_map::Keys;
-
 mod builtin;
 mod commands;
 mod config;
 mod interface;
 mod parsing;
-
-// mod commands;
 use crate::builtin::change_directory_to_home;
+use crate::commands::{Job, execute_full_command, handle_background_processes};
 use crate::config::check_config_file;
 use crate::config::load_history;
 use crate::parsing::simple_parse;
@@ -23,6 +21,7 @@ pub struct ShellState {
     working_directory: String,
     home: String,
     env_vars: HashMap<String, String>, // Dictionary for the environment variables
+    background_processes: Vec<Job>,
     aliases: HashMap<String, String>,  // Dictionary for the aliases
     functions: HashMap<String, Vec<String>>,
     history: Vec<String>,
@@ -42,6 +41,7 @@ fn main() {
         working_directory: dirs::home_dir().unwrap().to_string_lossy().to_string(),
         env_vars: std::env::vars().collect(),
         aliases: HashMap::new(),
+        background_processes: Vec::new(),
         functions: HashMap::new(),
         history: Vec::new(),
         history_max: MAX_HISTORY_SIZE,
@@ -66,6 +66,10 @@ fn main() {
             break;
         }
 
+        // TODO: Handle it with a monitor/timer to check for
+        // the running processes every 1 second
+        handle_background_processes(&mut shell_state);
+
         interface::interface(
             &username,
             &hostname,
@@ -76,7 +80,7 @@ fn main() {
         input.clear();
         std::io::stdin().read_line(&mut input).unwrap();
 
-        if input.is_empty() {
+        if input.trim().is_empty() {
             continue;
         }
 
@@ -94,7 +98,9 @@ fn main() {
 
         input = check_aliases(&input, &mut shell_state);
         input = builtin::expand_env_vars(&input, &mut shell_state);
-        let cli = simple_parse(&input);
-        commands::execute_command(&cli, &mut shell_state);
+        let cli = handle_parse(&input);
+        if let Some(commands) = cli {
+            execute_full_command(&commands, &mut shell_state);
+        }
     }
 }
