@@ -77,9 +77,13 @@ ASH is a functional Unix shell implementation written entirely in Rust. It succe
 - Standard library dependencies: `dirs`, `whoami`
 
 ### Installation
-#### 3. Install Script (Recommended)
-
-#### 2. Build From Source
+#### Download Binary (Recommended)
+- current : [ash v0.1.0-beta](https://github.com/A55AF/ash/releases/tag/v0.1.0-beta)
+```bash
+chmod +x ash_v0.1.0-beta_linux-x86_64
+sudo mv ash_v0.1.0-beta_linux-x86_64 /usr/local/bin/ash
+```
+#### Build From Source
 ```bash
 # Clone the repository
 git clone https://github.com/A55AF/ash.git
