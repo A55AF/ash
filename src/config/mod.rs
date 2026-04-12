@@ -23,7 +23,7 @@ alias la='ls -A'
 alias ..='cd ..'
 
 # PATH
-export PATH=\"$HOME/bin:$PATH\"
+export PATH=\"$HOME/.local/bin:$PATH\"
 ";
 
 pub fn check_config_file(shell: &mut ShellState) {
