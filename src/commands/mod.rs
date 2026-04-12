@@ -88,7 +88,8 @@ fn run_external(cli: &ParsedCommand, is_background: bool, shell: &mut ShellState
     // Run the process and handle if it's failed
     let running_process = cmd.args(&cli.arguments).spawn();
     if let Err(ref e) = running_process {
-        eprintln!("Execution failed: {}", e)
+        eprintln!("ash: {}", e);
+        return;
     }
 
     // Get the processs id and the child itself to handle

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -7,7 +8,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use crate::ShellState;
-use crate::builtin::alias::check_aliases;
+use crate::builtin::alias::check_alias;
 use crate::commands::execute_command;
 use crate::parsing::ParsedCommand;
 use crate::simple_parse;
@@ -83,9 +84,10 @@ pub fn read_config_file(file: File, shell: &mut ShellState) {
                 line.clear();
                 continue;
             } else {
-                process = check_aliases(&line, shell);
+                let mut visited: HashSet<String> = HashSet::new();
+                process = check_alias(&line, shell, &mut visited);
                 cli = simple_parse(&process);
-                execute_command(&cli, &crate::parsing::Operator::Background, shell);
+                execute_command(&cli, &crate::parsing::Operator::None, shell);
             }
         } else {
             // We are inside a function body
@@ -239,9 +241,10 @@ pub fn execute_conf_function(fn_name: &str, shell: &mut ShellState) -> bool {
         // For now, we ignore arguments; later we can pass $1, $2 etc.
         for line in body {
             // Expand aliases and parse each line
-            let expanded = check_aliases(&line, shell);
+            let mut visited: HashSet<String> = HashSet::new();
+            let expanded = check_alias(&line, shell, &mut visited);
             let sub_cli = simple_parse(&expanded);
-            execute_command(&sub_cli, &crate::parsing::Operator::Background, shell);
+            execute_command(&sub_cli, &crate::parsing::Operator::None, shell);
         }
         shell.exit_code = Some(0);
         return true;

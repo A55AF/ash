@@ -96,11 +96,11 @@ fn main() {
             shell_state.history.remove(0);
         }
 
-        input = check_aliases(&input, &mut shell_state);
         input = builtin::expand_env_vars(&input, &mut shell_state);
         let cli = handle_parse(&input);
         if let Some(commands) = cli {
-            execute_full_command(&commands, &mut shell_state);
+            let expanded_commands = check_aliases(commands, &shell_state);
+            execute_full_command(&expanded_commands, &mut shell_state);
         }
     }
 }

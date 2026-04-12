@@ -2,6 +2,13 @@
 name = "ash"
 version = "0.1.0"
 edition = "2024"
+description = "A simple linux shell that can run in any distro built with rust"
+license = "MIT"
+repository = "https://github.com/A55AF/ash"
+homepage = "https://github.com/A55AF/ash"
+readme = "README.md"
+keywords = ["cli", "tool", "linux shell"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 dirs = "6.0.0"
